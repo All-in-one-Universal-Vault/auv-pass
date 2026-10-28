@@ -101,13 +101,14 @@ jobs:
             libxrandr-dev libxcursor-dev libxinerama-dev \
             libgl1-mesa-dev libegl1-mesa-dev libasound2-dev
 
-      # Linux ARM64: 安装交叉编译工具链
+      # Linux ARM64: 安装交叉编译工具链(musl + gnu 都需要)
       - name: Install Linux ARM cross-compiler
-        if: runner.os == 'Linux' && matrix.target == 'aarch64-unknown-linux-gnu'
+        if: runner.os == 'Linux' && startsWith(matrix.target, 'aarch64')
         run: |
           sudo apt-get update
           sudo apt-get install -y gcc-aarch64-linux-gnu pkg-config
-          echo '[target.aarch64-unknown-linux-gnu]' >> .cargo/config.toml
+          mkdir -p .cargo
+          echo "[target.${{ matrix.target }}]" >> .cargo/config.toml
           echo 'linker = "aarch64-linux-gnu-gcc"' >> .cargo/config.toml
 
       - name: Build
