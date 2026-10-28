@@ -1,0 +1,772 @@
+================================================================
+ auv-pass 使用手册 / User Manual
+================================================================
+
+适用版本 / Applies to: 0.1.0
+
+本手册描述 TUI(auv-pass-tui)与 GUI(auv-pass-gui)的全部日常操作。
+This manual covers everyday use of both the TUI (auv-pass-tui) and
+the GUI (auv-pass-gui).
+
+目录 / Contents
+
+  中文
+    1. 概述与安全边界
+    2. 安装与构建
+    3. GUI 快速上手
+    4. TUI 快速上手
+    5. 密码库文件与凭据
+    6. 功能详解
+    7. SSH 密钥代理
+    8. 命令行直达模式(TUI)
+    9. 数据清除与隐私
+    10. 常见问题
+    11. 安全声明(威胁模型)
+    12. 许可
+
+  English
+    1. Overview and security boundaries
+    2. Build
+    3. GUI quick start
+    4. TUI quick start
+    5. Vault file and credentials
+    6. Features in depth
+    7. SSH key agent
+    8. Direct command-line mode (TUI)
+    9. Data removal and privacy
+    10. Troubleshooting
+    11. Security statement (threat model)
+    12. License
+
+================================================================
+ 中文
+================================================================
+
+1. 概述与安全边界
+----------------------------------------------------------------
+
+auv-pass 是本地优先的密码管理器:密码、TOTP、KDBX 互导、SSH 密钥
+代理装在一个单文件加密库里,由一个主密码(可再加密钥文件)保护。
+
+安全边界(第一屏承诺的展开):
+
+  - 零网络出口:软件不发起任何对外连接;SSH 代理只在本地监听
+    (Unix 域套接字 / Windows 命名管道)。
+  - 零遥测:不收集、不上传任何数据。
+  - 主密码不落盘、不进日志;密钥与明文在内存中用后即清(zeroize)。
+  - 全部数据在单个 .auvp 文件里——删掉它就是彻底清除,无缓存、
+    无注册表残留。
+
+2. 安装与构建
+----------------------------------------------------------------
+
+从源码构建,需要 Rust 工具链(edition 2021):
+
+    cargo build --release --workspace
+
+产物在 target/release/:auv-pass-tui.exe(终端界面)、
+auv-pass-gui.exe(图形界面,Windows 下双击运行不弹控制台)。
+Linux/macOS 构建方式相同。
+
+3. GUI 快速上手
+----------------------------------------------------------------
+
+3.1 打开与新建库
+
+启动后是登录页:
+
+  - 打开库:填库文件路径(旁有「…」浏览按钮)与主密码,点「解锁」。
+    库带密钥文件时在「密钥文件」一栏填路径。
+  - 新建库:勾选「新建库」(或菜单「文件 → 新建密码库」),补填重复
+    主密码并选择加密算法,点「创建并进入」。保存路径的父目录不存在时
+    会自动创建。
+
+三种凭据组合任选:仅主密码 / 仅密钥文件 / 两者并用。
+算法说明见第 5.2 节。
+
+未开库也可用密码生成器:菜单「工具 → 生成器」或登录页下方的入口,
+弹独立窗口(与 TUI 首页行为一致);新建库时主密码栏的 Gen 按当前
+生成器选项直接生成,重复栏需手动再输一遍确认持有。
+
+3.2 界面布局
+
+自上而下:菜单栏(文件 / 条目 / 工具 / 帮助)→ 工具栏(新增 / 编辑 /
+删除 | 复制用户名 / 复制密码 / 清空剪贴板;右侧版本与锁定)→ 标签页
+(密码库 / 生成器 / SSH 钥匙)→ 主工作区:左侧分组树(可拖宽)+ 右侧
+条目表(标题 / 用户名 / 密码遮蔽 / 网址 / 备注 / TOTP / 修改时间;列宽
+可调,列头点击排序)→ 底部详情面板(竖排字段栈:大标题与星标、逐字段
+复制、强度条、TOTP 倒计时、二维码;可拖上缘调高度)→ 状态栏(库路径、
+条数、自动锁定倒计时或 agent 运行标识、剪贴板倒计时、最近消息)。
+
+窗口标题显示库文件名,锁定后显示「已锁定」。
+
+3.3 菜单栏
+
+  文件 —— 打开密码库、新建密码库、锁定、退出
+  条目 —— 新增条目、编辑选中条目、删除选中条目、导入KDBX、导出KDBX
+  工具 —— 生成器、SSH 钥匙、语言切换(English / 中文)
+  帮助 —— 关于 auv-pass(版本、口号、许可、版权)
+
+未开库时「条目」「工具」自动置灰;解锁进行中禁止切换库。
+
+3.4 条目操作
+
+  - 新增:密码库页「+ 新增」或菜单。编辑器里:组名可从下拉选既有组
+    或手输新组;密码留空保存会自动生成一个 20 位密码;密码栏「Gen」
+    按当前选项生成,「＋」展开长度 / 字符类 / 排除字符;TOTP 栏可直接
+    粘贴 otpauth:// 或 base32 密钥,「QR」从截图扫码读入。
+  - 编辑:详情面板「编辑」,密码留空 = 保留原密码;TOTP 填 - = 清除。
+  - 删除与恢复:详情面板「删除」把条目移入回收站分组(左侧分组树可
+    见),回收站内条目的按钮变为「恢复」。TUI 的删除是确认后永久删除
+    (见 4.3)。
+  - 收藏:详情面板星标按钮切换收藏,收藏条目集中在左侧「收藏」分组。
+  - 搜索:右侧搜索框,按「S」循环切换范围(全部 / 标题 / 用户名 /
+    URL);命中五字段大小写不敏感。
+  - 排序:点表头(标题 / 用户名 / 修改时间)切换升降序。
+  - 条目列表的标记:[X] 回收站、[*] 收藏、[K] 含 TOTP。
+
+详情面板里:C 复制用户名 / 密码 / TOTP 码(按钮各自旁边),
+S/H 显示 / 隐藏密码明文(显示前有强度条),QR 显示 TOTP 二维码供
+手机扫码。
+
+编辑器分「基本 / 高级」两页签(高级页为附件管理,后续版本提供)。
+保存时的防护与提示:
+
+  - 保存前检查:同组同标题同用户名(疑似重复)/ 密码首尾空格 /
+    网址缺 http(s):// 前缀——弹确认框,可选「仍要保存」或返回修改;
+  - KDBX 导入先出预览(N 条、M 组、跳过清单),确认后才入库;
+  - KDBX 与私钥导出到已存在文件时先问覆盖;
+  - 保存失败(磁盘满/权限拒绝)弹错误窗,绝不静默;保存前有磁盘
+    空间预检;
+  - 新建库时主密码旁有强度条;空库显示「添加第一个条目」引导。
+
+3.5 键盘快捷键
+
+  Ctrl+N  新增条目          Ctrl+F  聚焦搜索框
+  Ctrl+C  复制选中条目密码    Ctrl+L  锁定
+
+4. TUI 快速上手
+----------------------------------------------------------------
+
+4.1 启动与首页
+
+无参数启动进入全屏界面,首页菜单:打开库 / 新建库 / 生成器 / 退出。
+新建库时算法按数字选(1=AES-256-GCM,2=ChaCha20,3=SM4-GCM 国标)。
+按 z 切换语言(表单页不拦截,字母照常录入)。
+
+4.2 主屏
+
+左栏分组、右栏条目,Tab 切换焦点;底部为选中条目的详情预览与键位
+提示。路径输入框按 Tab 可补全文件路径。
+
+4.3 键位总表
+
+  首页
+    ↑↓ / Enter / q —— 选择 / 确认 / 退出
+  主屏
+    Tab —— 切换 分组 / 条目 栏
+    n / e / d —— 新增 / 编辑 / 永久删除(弹确认,y 确认)
+    h / s —— 历史 / 搜索
+    g / k —— 生成器 / SSH 钥匙管理
+    8 / 9 —— 导入 / 导出 KDBX
+    l / q / Esc —— 锁定 / 退出 / 清除搜索
+    c / C —— 复制密码(30 秒清)/ 复制用户名(不清)
+  详情
+    p / c / u / t —— 显示明文一次 / 复制密码 / 复制用户名 / 显示 TOTP 码
+  详情、历史
+    h —— 查看历史(快照可再复制旧密码)
+  表单
+    Tab / ↑↓ / Enter / Esc —— 换字段 / 提交 / 取消;密码字段不回显,
+    编辑时回车 = 保留现值
+  生成器
+    c —— 复制结果(30 秒清;仅在数值字段聚焦时生效)
+  任意非表单屏
+    z —— 切换语言
+  钥匙屏
+    e / c / p —— 上岗下岗 / 复制公钥行 / 复制指纹
+    x / d —— 导出私钥 / 删除钥匙
+    g / i / a —— 生成 / 导入 / 启停 agent
+  签名确认
+    y / a / 其他 —— 允许 / 本会话该钥匙自动允许 / 拒绝
+    (30 秒无应答视为拒绝)
+
+5. 密码库文件与凭据
+----------------------------------------------------------------
+
+5.1 单文件库
+
+库是单个 .auvp 文件:文件头(算法、KDF 参数、盐、凭据标记)为明文
+非敏感信息,其余全部加密。头部的任何篡改都会让解密整体失败。保存
+采用原子写(先写临时文件再替换),不会因中途断电留下半个库。
+
+5.2 三种加密算法
+
+  AES-256-GCM(默认) —— 绝大多数现代 CPU 有硬件加速
+  ChaCha20-Poly1305 —— 老设备、部分 ARM 等无 AES 硬件加速的平台
+  SM4-GCM —— 国标合规路径(GB/T 32907-2016,128 位强度档)
+
+密钥派生统一为 Argon2id(默认 64 MiB / 3 轮),这是解锁约需一秒的
+原因——属于设计内的防暴力破解成本,不是卡顿。
+
+5.3 密钥文件
+
+密钥文件可以是任意文件(取其 SHA-256 参与派生),规则:
+
+  - 内容一字节都不能变——重存、编辑、换行符转换都会让库永远打不开;
+  - 必须备份,丢了库就废;
+  - 别和库文件放在同一处(同盘同目录等于没加这道锁)。
+
+忘记主密码或丢失 / 改变密钥文件时没有任何恢复手段——密码学上不可
+行,也没有后门。
+
+5.4 旧版库
+
+v1 格式的旧库直接打开,保存时自动升级为 v2(增加凭据标记)。
+
+6. 功能详解
+----------------------------------------------------------------
+
+  - 修改历史:条目每次实际变更前自动存一份旧值快照,默认保留最近
+    20 条;详情 / 历史页可查看并复制历史密码。
+  - 附件:任何文件原样入库(字节零改动,SHA-256 登记),导出逐字节
+    一致并还原修改/访问时间戳;单个附件超过 100MB 时弹大文件提示
+    (内存/耗时/备份三条代价)。入口:编辑器「高级」页、详情面板、
+    拖拽文件到选中条目;条目表 📎 列显示件数。KDBX 导入导出同步
+    携带附件。注意:附件原样存储,打开前请自行查毒。
+  - TOTP:支持 otpauth:// URI 与 base32 密钥,位数 6-8、步长最长
+    600 秒;验证码显示剩余秒数,复制 15 秒后自动清空。导出 KDBX 时
+    TOTP 写为 otpauth URI,KeePassXC / KeePassDX 可直接读。
+  - KDBX 互导:导入支持 KeePass 1.x-4.x(含 Argon2/KDBX4);导出为
+    KDBX 4(AES-256),分组、历史、TOTP、附件双向保留。导出时需
+    二次输入主密码并独立读回核验。
+  - 健康报告:弱密码(熵 <60bit)、多账号同密码、超 365 天未修改
+    ——纯本地检测,不碰网络。
+  - 更改主密码/更换密钥文件:菜单「文件 → 更改主密码」,新密码+强度
+    条+可选新密钥文件,应用后下次保存即全库重加密。
+  - 库属性:格式版本/算法/KDF 参数/条目数/附件数/文件大小/整库
+    SHA-256。
+  - 批量操作:条目表 Ctrl+点击多选,工具栏下方出现批量删除(回收站)。
+  - 主题与字体:暗/亮切换,缩放因子 0.8-2.0。
+  - 生成器:长度 8-128(默认 20),字符类可选,可排除易混字符
+    (如 0 O 1 l I);熵值按实际字符集精确计算。取样用拒绝采样消除
+    模偏置。
+  - 剪贴板安全:复制密码 30 秒、TOTP 15 秒后自动清空;代数戳 + 读回
+    比对保证只清自己写入的内容,不会误清你后来复制的东西。注意:
+    剪贴板历史类软件(如 Win+V)可能留存记录,敏感环境请关闭其历史
+    功能。
+  - 自动锁定:10 分钟无操作自动清零密钥并回登录页;SSH agent 运行
+    期间豁免(见第 7 章)。
+
+7. SSH 密钥代理
+----------------------------------------------------------------
+
+7.1 是什么
+
+auv-pass 实现了 ssh-agent 兼容协议:把库里的 Ed25519 私钥通过本地
+代理提供给 ssh / git / IDE 等现有工具,这些工具零改动、零配置迁移
+即可使用;私钥明文不落盘(生成路径甚至从未写过盘)。
+
+7.2 钥匙管理
+
+GUI 在「SSH 钥匙」标签页,TUI 按 k 进钥匙管理屏。操作:生成
+(Ed25519,注释即名称)/ 导入(OpenSSH 格式,带口令则先验口令;公钥
+不变、服务器零改动)/ 导出私钥 / 删除;复制公钥行可直接贴
+authorized_keys;每把钥匙有 SHA256 指纹。
+
+上岗(对外暴露)开关:只有标记上岗的钥匙才会被 agent 列出,新生成
+的钥匙默认不上岗。
+
+7.3 启动与接入
+
+至少一把钥匙上岗后启动 agent(GUI 的「启动」按钮,TUI 钥匙屏按
+a)。监听地址:
+
+  Windows:命名管道 \\.\pipe\auv-pass-ssh-agent
+  Linux / macOS:域套接字 $TMPDIR/auv-pass-agent.sock
+
+让工具使用它(独立命名,与系统自带 agent 可并存):
+
+    # Linux / macOS
+    export SSH_AUTH_SOCK="$TMPDIR/auv-pass-agent.sock"
+    # Windows PowerShell
+    $env:SSH_AUTH_SOCK = "\\.\pipe\auv-pass-ssh-agent"
+
+    ssh-add -l   # 应列出上岗钥匙(ED25519 + SHA256 指纹)
+
+此后 ssh、git 等照常使用。快照模式:agent 启动时固定当时的上岗
+集合,上岗状态变更后需重启 agent 生效。
+
+7.4 签名确认
+
+每次签名请求默认弹窗确认(GUI 弹窗 / TUI 弹窗):允许 / 本会话该
+钥匙自动允许 / 拒绝,30 秒无应答视为拒绝。GUI 状态栏显示 agent 地址
+与累计签名数;钥匙页可查看并撤销「本会话已自动允许」的钥匙。
+
+7.5 实用建议
+
+  - agent 里只放常用的一小撮钥匙——SSH 服务器默认 MaxAuthTries 6,
+    钥匙太多可能在轮到正确钥匙前就被服务器掐断;必要时在
+    ~/.ssh/config 对特定主机配 IdentitiesOnly yes。
+  - 导出的私钥不带口令,文件在 Unix 下以 0600 权限落地——传给别人
+    或换机导入后请尽快妥善处理;不用就删。
+  - 高敏感环境建议关闭系统崩溃转储(crash dump),避免内存快照
+    落盘。
+
+8. 命令行直达模式(TUI)
+----------------------------------------------------------------
+
+不开全屏界面、脚本化取密码:
+
+    auv-pass-tui find 库路径 关键词 [--copy]   # 搜索;--copy 复制第一个命中(30 秒自清)
+    auv-pass-tui list 库路径                    # 列出全部条目
+    auv-pass-tui --version
+
+  - 多条命中时编号列出供选择,直接回车取第一条;
+  - 退出码:0 成功,1 未命中 / 打开失败,2 用法错误;
+  - 密钥文件可用环境变量 AUV_PASS_KEYFILE 预置。
+
+9. 数据清除与隐私
+----------------------------------------------------------------
+
+  - 彻底清除:删除 .auvp 库文件即清除全部数据(软件不写任何其他
+    位置);
+  - 锁定或退出即清零内存密钥;空闲 10 分钟自动锁定;
+  - 剪贴板按 30 / 15 秒自动清空(见 6);
+  - 无遥测、无崩溃报告、无自动更新检查——软件不主动连任何主机。
+
+10. 常见问题
+----------------------------------------------------------------
+
+双击 GUI 没有控制台窗口?
+  正常,它是原生窗口程序。
+
+解锁要一秒左右?
+  正常,Argon2id 的防暴力破解成本(见 5.2)。
+
+忘记主密码 / 密钥文件变了?
+  无法恢复,没有后门(见 5.3)。
+
+ssh-add 连不上?
+  依次检查:agent 是否已启动(钥匙屏 / 状态栏可见);SSH_AUTH_SOCK
+  是否指向正确地址;是否至少一把钥匙上岗;上岗变更后是否重启过
+  agent。
+
+认证报 Too many authentication failures?
+  上岗钥匙太多(见 7.5)。
+
+TUI 中文或边框乱码?
+  终端需要 UTF-8 编码;配色需要真彩支持(现代终端默认支持)。
+
+复制后剪贴板 30 秒没清?
+  多半被剪贴板管理软件接管了历史记录;auv-pass 只清实时剪贴板,
+  请关闭该类软件的历史功能。
+
+11. 安全声明(威胁模型)
+----------------------------------------------------------------
+
+auv-pass 防:拿到库文件的窃取者与远程攻击者——没有主密码(和密钥
+文件)库打不开,私钥明文全程不落盘。
+
+auv-pass 不防:已提权的本地恶意软件。该等级的攻击者可以键盘记录偷
+主密码、在解锁期间读取进程内存——这是所有本地密码管理器的共同
+边界,不是缺陷声明,是如实告知。相应建议:系统盘加密、关闭崩溃
+转储、敏感操作专用环境。
+
+12. 许可
+----------------------------------------------------------------
+
+MulanPSL-2.0 OR Apache-2.0 双许可(木兰在前),全文见仓库根目录两个
+LICENSE 文件;第三方组件见 THIRD-PARTY-NOTICES.md。
+版权 © 2026 积澍技术(jishu.tech)。
+
+================================================================
+ English
+================================================================
+
+1. Overview and security boundaries
+----------------------------------------------------------------
+
+auv-pass is a local-first password manager: passwords, TOTP, KDBX
+interop and an SSH key agent live in one single-file encrypted vault
+protected by a master password (optionally plus a key file).
+
+Security boundaries (the first-screen promises, expanded):
+
+  - Zero network egress: the software makes no outbound connections;
+    the SSH agent listens only on a local socket (Unix domain
+    socket / Windows named pipe).
+  - Zero telemetry: nothing is collected or uploaded.
+  - The master password never touches disk or logs; keys and
+    plaintext are zeroized after use.
+  - All data lives in a single .auvp file — delete it and everything
+    is gone; no caches, no registry leftovers.
+
+2. Build
+----------------------------------------------------------------
+
+From source with a Rust toolchain (edition 2021):
+
+    cargo build --release --workspace
+
+Artifacts land in target/release/: auv-pass-tui (terminal UI) and
+auv-pass-gui (native window app; on Windows double-click runs it with
+no console). Linux/macOS build identically.
+
+3. GUI quick start
+----------------------------------------------------------------
+
+3.1 Opening and creating vaults
+
+The login page offers:
+
+  - Open: vault path (with a "..." file browser), master password,
+    optional key-file path, then "Unlock".
+  - Create: tick "New vault" (or menu File → New vault), repeat the
+    master password, pick a cipher, then "Create & enter". Missing
+    parent directories are created automatically.
+
+Credential combinations: master password only / key file only / both.
+Ciphers are described in 5.2.
+
+The generator works before any vault is open: menu Tools → Generator
+or the link under the login form opens a standalone window (matching
+the TUI home screen); when creating a vault, the Gen button next to
+the master-password field generates with the current generator
+options — retype it in the repeat field to confirm you have it.
+
+3.2 Layout
+
+Top to bottom: menu bar (File / Entries / Tools / Help) → toolbar (New /
+Edit / Delete | Copy Username / Copy Password / Clear Clipboard; version
+and Lock on the right) → tabs (Vault / Generator / SSH Keys) → main area:
+group tree on the left (drag to resize) and the entry table on the right
+(Title / Username / masked Password / URL / Notes / TOTP / Modified;
+resizable columns, click headers to sort) → bottom detail pane (a vertical
+field stack: large title with star, per-field copy buttons, strength bar,
+TOTP countdown, QR code; drag its top edge to resize) → status bar (vault
+path, entry count, auto-lock countdown or the agent indicator, clipboard
+countdown, last message).
+
+The window title shows the vault file name, or "Locked" when locked.
+
+3.3 Menu bar
+
+  File —— Open vault, New vault, Lock, Quit
+  Entries —— New entry, Edit selected, Delete selected, Import KDBX, Export KDBX
+  Tools —— Generator, SSH Keys, language switch (English / 中文)
+  Help —— About auv-pass (version, slogan, license, copyright)
+
+Entries and Tools grey out while no vault is open; vault switching is
+blocked while an unlock is in flight.
+
+3.4 Working with entries
+
+  - New: "+ New" button or menu. In the editor: pick an existing
+    group from the dropdown or type a new one; leaving the password
+    empty auto-generates a 20-character password on save; "Gen"
+    generates with current options ("+" expands length / character
+    classes / excluded characters); the TOTP field accepts
+    otpauth:// or base32, and "QR" reads one from a screenshot.
+  - Edit: from the detail pane; an empty password keeps the old one;
+    "-" in TOTP clears it.
+  - Delete & restore: "Delete" in the detail pane moves the entry to
+    the Trash group (visible in the left tree); inside trash the
+    button becomes "Restore". TUI deletion is permanent after
+    confirmation (see 4.3).
+  - Favorites: the star button toggles favorite status; favorites
+    gather under the left "Favorites" group.
+  - Search: the search box; "S" cycles scope (All / Title /
+    Username / URL); matching is case-insensitive across five
+    fields.
+  - Sort: click column headers (Title / Username / Modified).
+  - Row markers: [X] trash, [*] favorite, [K] has TOTP.
+
+In the detail pane: "C" buttons copy username / password / TOTP code;
+"S"/"H" show/hide the plaintext (with a strength bar); "QR" shows
+the TOTP QR code for phone scanning.
+
+The editor has two tabs, Basic / Advanced (Advanced holds attachment
+management, arriving in a later release). Save-time guards and prompts:
+
+  - Pre-save check: same title and username in the same group (possible
+    duplicate) / leading-trailing spaces in the password / URL missing an
+    http(s):// prefix — a confirmation offers "Save Anyway" or going back;
+  - KDBX import shows a preview first (N entries, M groups, skipped list)
+    and imports only after confirmation;
+  - Exporting KDBX or private keys onto an existing file asks to overwrite;
+  - Save failures (disk full / permission denied) raise an explicit alert,
+    never silent, with a disk-space precheck before saving;
+  - The create-vault form shows a master-password strength bar; an empty
+    vault shows "add your first entry" guidance.
+
+3.5 Keyboard shortcuts
+
+  Ctrl+N  new entry              Ctrl+F  focus the search box
+  Ctrl+C  copy selected password  Ctrl+L  lock
+
+4. TUI quick start
+----------------------------------------------------------------
+
+4.1 Launch and home
+
+Run without arguments for the full-screen UI. Home menu: Open vault
+/ New vault / Generator / Quit. When creating, pick the cipher by
+number (1 = AES-256-GCM, 2 = ChaCha20, 3 = SM4-GCM). "z" switches
+language (forms still type the letter normally).
+
+4.2 Main screen
+
+Left column groups, right column entries, Tab switches focus; the
+bottom shows a detail preview and key hints. Tab in a path field
+completes file paths.
+
+4.3 Key map
+
+  Home
+    ↑↓ / Enter / q —— select / confirm / quit
+  Main
+    Tab —— switch Groups / Entries column
+    n / e / d —— new / edit / delete permanently (y to confirm)
+    h / s —— history / search
+    g / k —— generator / SSH key screen
+    8 / 9 —— import / export KDBX
+    l / q / Esc —— lock / quit / clear search
+    c / C —— copy password (30 s clear) / copy username (no clear)
+  Detail
+    p / c / u / t —— reveal once / copy password / copy username / show TOTP
+  Detail, History
+    h —— view history (old passwords copyable)
+  Forms
+    Tab / ↑↓ / Enter / Esc —— move / submit / cancel; passwords
+    masked; Enter keeps the current value when editing
+  Generator
+    c —— copy result (30 s clear; only while a numeric field is focused)
+  Any non-form screen
+    z —— toggle language
+  Keys screen
+    e / c / p —— expose toggle / copy public key / copy fingerprint
+    x / d —— export private key / delete key
+    g / i / a —— generate / import / start-stop agent
+  Sign confirm
+    y / a / other —— allow / allow for this session / deny
+    (30 s timeout denies)
+
+5. Vault file and credentials
+----------------------------------------------------------------
+
+5.1 Single-file vault
+
+The vault is one .auvp file: the header (cipher, KDF params, salt,
+credential marker) is plaintext and non-sensitive; everything else is
+encrypted. Any tamper with the header fails decryption as a whole.
+Saves are atomic (temp file + rename), so a power cut cannot leave a
+half-written vault.
+
+5.2 Three ciphers
+
+  AES-256-GCM (default) —— most modern CPUs with AES-NI
+  ChaCha20-Poly1305 —— older machines, some ARM boards without AES hardware
+  SM4-GCM —— Chinese national standard compliance (GB/T 32907-2016, 128-bit class)
+
+Key derivation is Argon2id (default 64 MiB / 3 passes) — that
+one-second unlock is deliberate brute-force cost, not lag.
+
+5.3 Key files
+
+A key file can be any file (its SHA-256 feeds derivation). Rules:
+
+  - Its content must never change — re-saving or line-ending
+    conversion permanently locks the vault;
+  - Back it up; losing it loses the vault;
+  - Do not store it next to the vault file (same disk and folder
+    defeats the purpose).
+
+A forgotten master password or a changed/lost key file means no
+recovery of any kind — cryptographically impossible, and there is no
+back door.
+
+5.4 Legacy vaults
+
+v1 vaults open directly and upgrade to v2 on save (adds the
+credential marker).
+
+6. Features in depth
+----------------------------------------------------------------
+
+  - History: every real change snapshots the old values first,
+    keeping the latest 20 by default; history pages let you copy old
+    passwords.
+  - Attachments: any file stored verbatim (byte-identical with a
+    registered SHA-256); exporting restores bytes and the
+    modified/accessed timestamps; files over 100 MB trigger a
+    large-file prompt (memory / save time / backup size). Entry
+    points: the editor's Advanced tab, the detail pane, or dropping
+    files onto the selected entry; the 📎 column shows the count. KDBX
+    import/export carries attachments both ways. Note: attachments
+    are stored as-is — virus-scan before opening.
+  - TOTP: otpauth:// URIs and base32 secrets, 6-8 digits, periods up
+    to 600 s; shows remaining seconds; copies self-clear after 15 s.
+    KDBX export writes otpauth URIs readable by KeePassXC /
+    KeePassDX.
+  - KDBX interop: imports KeePass 1.x-4.x (incl. Argon2/KDBX4);
+    exports KDBX 4 (AES-256) with groups, history, TOTP and
+    attachments carried both ways; exports are verified by an
+    independent read-back and require retyping the password.
+  - Health report: weak passwords (<60 bit), reused passwords,
+    entries not modified in over 365 days — all local, no network.
+  - Change master password / key file: menu File → Change Password;
+    strength bar and optional new key file; applies on the next save.
+  - Vault properties: format version, algorithm, KDF parameters,
+    entry count, attachment count, file size and whole-file SHA-256.
+  - Batch operations: Ctrl+click for multi-select in the entry table;
+    a batch-delete (trash) bar appears below the toolbar.
+  - Theme and font: dark/light toggle; scaling from 0.8 to 2.0.
+  - Generator: length 8-128 (default 20), optional character
+    classes, excludable confusables (0 O 1 l I); exact entropy by
+    the effective character set; rejection sampling removes modulo
+    bias.
+  - Clipboard: passwords clear after 30 s, TOTP codes after 15 s; an
+    epoch counter plus read-back check ensures only your own copy
+    gets wiped. Note that clipboard-history tools (e.g. Win+V) may
+    retain records — disable their history in sensitive
+    environments.
+  - Auto-lock: 10 minutes idle wipes the keys and returns to the
+    login page; waived while the SSH agent runs (see 7).
+
+7. SSH key agent
+----------------------------------------------------------------
+
+7.1 What it is
+
+auv-pass speaks the ssh-agent protocol: Ed25519 private keys in the
+vault serve ssh / git / IDEs through a local agent — those tools
+need zero changes; plaintext private keys never touch disk
+(generated keys are never even written out).
+
+7.2 Managing keys
+
+GUI "SSH Keys" tab; TUI key screen (k). Generate (Ed25519, the name
+doubles as comment) / import (OpenSSH format, passphrase checked
+first; the public key stays valid, servers need no change) / export
+/ delete; the public-key line copies straight into
+authorized_keys; each key shows a SHA256 fingerprint.
+
+The expose switch ("on duty") controls which keys the agent lists;
+freshly generated keys start hidden.
+
+7.3 Start and connect
+
+Start the agent with at least one key on duty (GUI "Start", TUI
+"a"). It listens at:
+
+  Windows: named pipe \\.\pipe\auv-pass-ssh-agent
+  Linux / macOS: domain socket $TMPDIR/auv-pass-agent.sock
+
+Point your tools at it (independent naming — coexists with any
+system agent):
+
+    # Linux / macOS
+    export SSH_AUTH_SOCK="$TMPDIR/auv-pass-agent.sock"
+    # Windows PowerShell
+    $env:SSH_AUTH_SOCK = "\\.\pipe\auv-pass-ssh-agent"
+
+    ssh-add -l   # should list on-duty keys (ED25519 + SHA256 fingerprints)
+
+After that, ssh, git and friends work as usual. Snapshot mode: the
+on-duty set is fixed when the agent starts; changing it requires an
+agent restart.
+
+7.4 Sign confirmation
+
+Every sign request pops a confirmation by default: Allow / Allow for
+this session (that key) / Deny, with a 30-second timeout denying.
+The GUI status bar shows the agent address and accumulated signature
+count; the SSH Keys page lists and can revoke keys allowed for the
+session.
+
+7.5 Practical advice
+
+  - Keep only a handful of keys on duty — SSH servers default to
+    MaxAuthTries 6, and too many keys can exhaust tries before the
+    right key is offered; configure IdentitiesOnly yes per host in
+    ~/.ssh/config if needed.
+  - Exported private keys carry no passphrase (files land 0600 on
+    Unix) — handle exports carefully and delete them when done.
+  - In high-security environments, disable crash dumps so memory
+    snapshots never hit disk.
+
+8. Direct command-line mode (TUI)
+----------------------------------------------------------------
+
+Scriptable, no full-screen UI:
+
+    auv-pass-tui find <vault> <term> [--copy]   # search; --copy copies the first hit (30 s self-clear)
+    auv-pass-tui list <vault>                   # list all entries
+    auv-pass-tui --version
+
+  - Multiple hits are numbered for selection; plain Enter takes the
+    first;
+  - Exit codes: 0 success, 1 no match / open failure, 2 usage
+    error;
+  - AUV_PASS_KEYFILE presets the key-file path.
+
+9. Data removal and privacy
+----------------------------------------------------------------
+
+  - Total removal: delete the .auvp file — the software writes
+    nowhere else;
+  - Locking or exiting wipes in-memory keys; 10 idle minutes
+    auto-lock;
+  - Clipboard self-clears on the 30/15-second schedule (see 6);
+  - No telemetry, no crash reports, no update checks — the software
+    never calls out.
+
+10. Troubleshooting
+----------------------------------------------------------------
+
+The GUI shows no console when double-clicked?
+  Correct — it is a native window app.
+
+Unlock takes about a second?
+  By design — Argon2id brute-force cost (see 5.2).
+
+Forgot the master password / key file changed?
+  No recovery, no back door (see 5.3).
+
+ssh-add cannot connect?
+  Check in order: agent running (visible on the key screen / status
+  bar); SSH_AUTH_SOCK pointing at the right address; at least one
+  key on duty; agent restarted after exposure changes.
+
+"Too many authentication failures"?
+  Too many keys on duty (see 7.5).
+
+Garbled TUI text or borders?
+  The terminal must be UTF-8; colors need truecolor (default on
+  modern terminals).
+
+Clipboard not cleared after 30 seconds?
+  A clipboard manager is probably keeping history; auv-pass clears
+  the live clipboard only — disable such history features.
+
+11. Security statement (threat model)
+----------------------------------------------------------------
+
+auv-pass defends against thieves with the vault file and remote
+attackers — without the master password (and key file) the vault
+stays closed, and plaintext private keys never hit disk.
+
+auv-pass does not defend against local malware with elevated
+privileges. Such an attacker can keylog the master password or read
+process memory while unlocked — a boundary shared by every local
+password manager, stated here as fact, not excuse. Countermeasures:
+full-disk encryption, crash dumps off, a dedicated environment for
+sensitive work.
+
+12. License
+----------------------------------------------------------------
+
+Dual-licensed MulanPSL-2.0 OR Apache-2.0 (Mulan first); full texts
+in the two LICENSE files at the repository root; third-party
+notices in THIRD-PARTY-NOTICES.md. Copyright (c) 2026 积澍技术
+(jishu.tech).

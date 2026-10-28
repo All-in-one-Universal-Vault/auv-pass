@@ -1,0 +1,52 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/auv-pass-engine",
+    "crates/auv-pass-tui",
+    "crates/auv-pass-gui",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MulanPSL-2.0 OR Apache-2.0"
+authors = ["积澍技术"]
+
+[workspace.dependencies]
+# 族共享库（auv-ui / auv-i18n，公开仓）：
+# 双 tag 同提交（auv-ui-v0.1.0 / auv-i18n-v0.1.0 → 28af9df），单 tag 引用即可。
+auv-ui = { git = "https://github.com/All-in-one-Universal-Vault/auv-ui", tag = "auv-ui-v0.1.0", default-features = false } # GUI 启动样板 + CJK 字体
+auv-i18n = { git = "https://github.com/All-in-one-Universal-Vault/auv-ui", tag = "auv-ui-v0.1.0" } # Fluent 国际化机制
+argon2 = "0.6"            # Argon2id 密钥派生
+aes-gcm = "0.11"          # AES-256-GCM AEAD
+chacha20poly1305 = "0.11" # ChaCha20-Poly1305 AEAD
+sm4 = "0.6"               # SM4 分组密码（GB/T 32907-2016；GCM 复用 aes-gcm 泛型，工作模式 GB/T 17964-2021）
+zeroize = { version = "1.9", features = ["serde"] } # 敏感内存清零；serde 特性 = Zeroizing 可序列化
+serde = { version = "1", features = ["derive"] }   # 库模型序列化
+serde_json = "1"          # 库载荷 JSON
+uuid = { version = "1", features = ["v4", "serde"] } # 条目标识（v4 = OS 熵）
+getrandom = "0.4"         # OS 熵安全随机数（直接依赖，避开 rand 重导出的版本代差）
+crossterm = "0.29"        # 终端控制（raw mode / 按键事件）
+ratatui = "0.30"          # 全屏终端界面
+arboard = "3"             # 跨平台剪贴板（复制 + 30 秒自动清）
+chrono = { version = "0.4", default-features = false, features = ["clock"] } # 时间显示
+sha1 = "0.10"             # TOTP HMAC-SHA1 摘要原语（HMAC 构造自实现）
+sha2 = "0.11"             # TOTP HMAC-SHA256/512 摘要原语
+keepass = { version = "0.6", features = ["save_kdbx4"] } # KDBX 读写
+ssh-key = { version = "0.6", features = ["ed25519", "getrandom", "encryption"] } # OpenSSH 私钥容器
+ed25519-dalek = "2"      # Ed25519 签名原语
+interprocess = "2"       # 跨平台本地套接字（Unix socket / 命名管道统一）
+eframe = "0.36"           # GUI（原生窗口程序）
+egui_extras = { version = "0.36", default-features = false } # GUI 表格
+rfd = "0.17"                # 系统文件选择器
+bardecoder = "0.5"          # 二维码读码（纯 Rust 解码）
+qrcode = "0.14"             # 二维码显示（生成）
+image = { version = "0.24", default-features = false, features = ["png", "jpeg"] } # 图片加载
+thiserror = "2"           # 错误定义
+winresource = "0.1"       # Windows 图标资源嵌入(构建期,仅 Windows 目标)
+fs2 = "0.4"                # 磁盘可用空间查询(保存前空间预检)
+filetime = "0.2"           # 文件时间戳还原(附件导出)
+
+[profile.release]
+lto = true
+strip = true

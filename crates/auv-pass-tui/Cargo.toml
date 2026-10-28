@@ -1,0 +1,16 @@
+[package]
+name = "auv-pass-tui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+auv-pass-engine = { path = "../auv-pass-engine" }
+auv-i18n.workspace = true
+crossterm.workspace = true
+ratatui.workspace = true
+arboard.workspace = true
+chrono.workspace = true
+zeroize.workspace = true
+[dev-dependencies]
+serde_json.workspace = true

@@ -1,0 +1,30 @@
+[package]
+name = "auv-pass-engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+auv-i18n.workspace = true
+argon2.workspace = true
+aes-gcm.workspace = true
+chacha20poly1305.workspace = true
+sm4.workspace = true
+zeroize.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
+getrandom.workspace = true
+sha1.workspace = true
+sha2.workspace = true
+keepass.workspace = true
+chrono.workspace = true
+ssh-key.workspace = true
+ed25519-dalek.workspace = true
+interprocess.workspace = true
+thiserror.workspace = true
+filetime.workspace = true
+
+[dev-dependencies]
+zeroize.workspace = true
+keepass.workspace = true

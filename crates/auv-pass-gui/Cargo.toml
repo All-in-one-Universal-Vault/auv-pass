@@ -1,0 +1,30 @@
+[package]
+name = "auv-pass-gui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "auv-pass-gui"
+path = "src/main.rs"
+
+[dependencies]
+auv-pass-engine = { path = "../auv-pass-engine" }
+auv-i18n.workspace = true
+auv-ui = { workspace = true, features = ["gui"] }
+eframe.workspace = true
+egui_extras.workspace = true
+rfd.workspace = true
+bardecoder.workspace = true
+qrcode.workspace = true
+image.workspace = true
+arboard.workspace = true
+chrono.workspace = true
+fs2.workspace = true
+sha2.workspace = true
+zeroize.workspace = true
+[dev-dependencies]
+serde_json.workspace = true
+
+[build-dependencies]
+winresource.workspace = true

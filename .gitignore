@@ -1,0 +1,30 @@
+# 构建与本地生成物
+/target/
+*.log
+*.tmp
+*.bak
+*.orig
+*.rej
+*.swp
+*.swo
+*~
+
+# 系统垃圾
+.DS_Store
+Thumbs.db
+desktop.ini
+._*
+~$*
+
+# 本地测试库文件
+*.auvp
+*.auvp.tmp
+
+# 隐藏文件/目录默认全忽略
+.*
+!.gitignore
+!.gitattributes
+
+# 本地私有内容（正常不应位于公开仓目录）
+/meta-docs/
+/.tmp/

@@ -1,0 +1,5 @@
+# 文本统一 LF（Windows 编辑器 / git autocrlf 均不得改写），二进制按扩展名标记
+* text=auto eol=lf
+*.png binary
+*.ttf binary
+*.ico binary
